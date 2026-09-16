@@ -31,3 +31,22 @@
 #       exporters: [otlp_http/prometheus, debug, otlp_grpc/mybackend]           # repeat upstream exporters
 #     logs:
 #       exporters: [opensearch, debug, otlp_grpc/mybackend]                     # repeat upstream exporters
+
+processors:
+  filter/checkly:
+    error_mode: ignore
+    traces:
+      span:
+        - 'trace_state["checkly"] != "true"'
+
+exporters:
+  otlp/checkly:
+    endpoint: "otel.eu-west-1.checklyhq.com:4317"
+    headers:
+      authorization: "${env:CHECKLY_OTEL_API_KEY}"
+
+service:
+  pipelines:
+    traces:
+      processors: [resource_detection, memory_limiter, transform/sanitize_spans, gen_ai_normalizer, transform/redact_sensitive_data, redaction, filter/checkly]
+      exporters: [debug, span_metrics, otlp/checkly]
